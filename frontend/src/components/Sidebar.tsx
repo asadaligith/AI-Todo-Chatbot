@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Card from "./ui/Card";
 import Button from "./ui/Button";
-import { TaskCardSkeleton, NoTasksEmptyState } from "./ui/Skeleton";
+import { TaskCardSkeleton } from "./ui/Skeleton";
+import { NoTasksEmptyState } from "./ui/EmptyState";
 
 interface Task {
   id: string;
