@@ -3,16 +3,21 @@
 import os
 import json
 import logging
+import asyncio
 from typing import Any
 from dataclasses import dataclass
 
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, APITimeoutError, APIConnectionError, APIError
+import httpx
 from dotenv import load_dotenv
 
 from src.mcp.server import get_tools
 
 load_dotenv()
 logger = logging.getLogger(__name__)
+
+# API timeout in seconds
+API_TIMEOUT = 30.0
 
 # System prompt for the Todo agent
 SYSTEM_PROMPT = """You are a helpful AI assistant that helps users manage their todo tasks through natural conversation.
@@ -34,8 +39,11 @@ Guidelines:
 
 Remember: You can ONLY manage tasks through the provided tools. Do not pretend to remember tasks or create them without using tools."""
 
-# OpenAI client
-client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# OpenAI client with timeout
+client = AsyncOpenAI(
+    api_key=os.getenv("OPENAI_API_KEY"),
+    timeout=httpx.Timeout(API_TIMEOUT, connect=10.0),
+)
 
 
 @dataclass
@@ -214,15 +222,38 @@ class TodoAgent:
         messages.append({"role": "user", "content": message})
 
         tool_calls_made: list[ToolCall] = []
+        max_iterations = 5  # Prevent infinite loops
 
         # Run agent loop
-        while True:
-            response = await client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=messages,
-                tools=self._get_tools_schema(),
-                tool_choice="auto",
-            )
+        for iteration in range(max_iterations):
+            try:
+                logger.info(f"Calling OpenAI API (iteration {iteration + 1})")
+                response = await client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=messages,
+                    tools=self._get_tools_schema(),
+                    tool_choice="auto",
+                )
+                logger.info("OpenAI API response received")
+
+            except APITimeoutError:
+                logger.error("OpenAI API timeout")
+                return AgentResponse(
+                    content="I'm sorry, the request took too long. Please try again.",
+                    tool_calls=tool_calls_made,
+                )
+            except APIConnectionError as e:
+                logger.error(f"OpenAI API connection error: {e}")
+                return AgentResponse(
+                    content="I'm having trouble connecting to my AI service. Please try again.",
+                    tool_calls=tool_calls_made,
+                )
+            except APIError as e:
+                logger.error(f"OpenAI API error: {e}")
+                return AgentResponse(
+                    content="I encountered an error. Please try again.",
+                    tool_calls=tool_calls_made,
+                )
 
             assistant_message = response.choices[0].message
 
@@ -257,6 +288,13 @@ class TodoAgent:
                     content=assistant_message.content or "",
                     tool_calls=tool_calls_made,
                 )
+
+        # Max iterations reached
+        logger.warning("Max iterations reached in agent loop")
+        return AgentResponse(
+            content="I completed your request but reached my processing limit.",
+            tool_calls=tool_calls_made,
+        )
 
 
 async def run_agent(
