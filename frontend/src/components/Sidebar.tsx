@@ -17,6 +17,8 @@ interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onNewChat: () => void;
+  userId: string;
+  refreshTrigger?: number;
   className?: string;
 }
 
@@ -24,30 +26,47 @@ interface SidebarProps {
  * Sidebar component showing task summary and quick actions
  * Mobile-first with smooth slide-in animation
  */
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 export default function Sidebar({
   isOpen,
   onClose,
   onNewChat,
+  userId,
+  refreshTrigger = 0,
   className = "",
 }: SidebarProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Mock task data - in production, fetch from API
+  // Fetch real tasks from API
   useEffect(() => {
-    if (isOpen) {
+    const fetchTasks = async () => {
+      if (!userId) return;
+
       setIsLoading(true);
-      // Simulate API call
-      setTimeout(() => {
-        setTasks([
-          { id: "1", title: "Buy groceries", completed: false, priority: "high" },
-          { id: "2", title: "Call dentist", completed: true, priority: "medium" },
-          { id: "3", title: "Review PRs", completed: false, priority: "low" },
-        ]);
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/${userId}/tasks`);
+        if (response.ok) {
+          const data = await response.json();
+          // Map API response to Task interface
+          const mappedTasks: Task[] = data.tasks.map((task: { id: string; title: string; is_completed: boolean }) => ({
+            id: task.id,
+            title: task.title,
+            completed: task.is_completed,
+          }));
+          setTasks(mappedTasks);
+        }
+      } catch (error) {
+        console.error("Failed to fetch tasks:", error);
+        setTasks([]);
+      } finally {
         setIsLoading(false);
-      }, 500);
-    }
-  }, [isOpen]);
+      }
+    };
+
+    fetchTasks();
+  }, [userId, refreshTrigger]);
 
   const completedCount = tasks.filter((t) => t.completed).length;
   const totalCount = tasks.length;

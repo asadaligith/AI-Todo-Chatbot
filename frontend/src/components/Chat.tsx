@@ -30,6 +30,7 @@ export default function Chat() {
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string>("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [taskRefreshTrigger, setTaskRefreshTrigger] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
 
@@ -93,6 +94,11 @@ export default function Chat() {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // Trigger sidebar refresh if any tool calls were made (task operations)
+      if (response.tool_calls && response.tool_calls.length > 0) {
+        setTaskRefreshTrigger((prev) => prev + 1);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       // Add error message
@@ -291,6 +297,8 @@ export default function Chat() {
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         onNewChat={handleNewConversation}
+        userId={userId}
+        refreshTrigger={taskRefreshTrigger}
       />
     </div>
   );
