@@ -146,9 +146,65 @@ GET /health
 └── README.md          # This file
 ```
 
+## Deployment
+
+Deploy the AI Todo Chatbot to production:
+
+| Component | Platform | Guide |
+|-----------|----------|-------|
+| Frontend | Vercel | [Deploy to Vercel](#deploy-frontend-to-vercel) |
+| Backend | Render | [Deploy to Render](#deploy-backend-to-render) |
+| Database | Neon | Already configured |
+
+### Quick Deploy
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+
+### Deploy Backend to Render
+
+1. Create a new **Web Service** on [Render](https://render.com)
+2. Connect your GitHub repository
+3. Configure:
+   - **Root Directory**: `backend`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `uvicorn src.main:app --host 0.0.0.0 --port $PORT`
+4. Add environment variables:
+   - `DATABASE_URL`: Your Neon connection string
+   - `OPENAI_API_KEY`: Your OpenAI API key
+   - `ENVIRONMENT`: `production`
+
+### Deploy Frontend to Vercel
+
+1. Import project on [Vercel](https://vercel.com)
+2. Configure:
+   - **Root Directory**: `frontend`
+   - **Framework**: Next.js (auto-detected)
+3. Add environment variable:
+   - `NEXT_PUBLIC_API_URL`: Your Render backend URL
+
+### Detailed Guide
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete deployment instructions including:
+- Step-by-step setup
+- Environment variables reference
+- Troubleshooting guide
+- Cost estimates
+- Custom domain configuration
+
 ## Development
 
 See individual README files in `backend/` and `frontend/` directories for detailed development instructions.
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | Next.js 14, React 18, Tailwind CSS |
+| Backend | FastAPI, Python 3.11 |
+| AI | OpenAI GPT-4o-mini, Function Calling |
+| Protocol | MCP (Model Context Protocol) |
+| Database | Neon PostgreSQL, SQLModel |
+| Hosting | Vercel (Frontend), Render (Backend) |
 
 ## License
 
