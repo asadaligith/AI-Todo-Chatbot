@@ -20,6 +20,19 @@ export interface ChatRequest {
   conversation_id?: string;
 }
 
+// Token refresh callback type
+type RefreshTokenCallback = () => Promise<string | null>;
+
+// Store for the token refresh callback
+let refreshTokenCallback: RefreshTokenCallback | null = null;
+
+/**
+ * Set the token refresh callback for fetchWithAuth
+ */
+export function setRefreshTokenCallback(callback: RefreshTokenCallback): void {
+  refreshTokenCallback = callback;
+}
+
 /**
  * Fetch with timeout support
  */
@@ -47,8 +60,57 @@ async function fetchWithTimeout(
   }
 }
 
+/**
+ * Fetch with authentication - automatically adds Authorization header
+ * and retries with token refresh on 401 response
+ */
+export async function fetchWithAuth(
+  url: string,
+  accessToken: string,
+  options: RequestInit = {},
+  timeout: number = API_TIMEOUT
+): Promise<Response> {
+  console.log("[API] fetchWithAuth called:", {
+    url,
+    hasToken: !!accessToken,
+    tokenPreview: accessToken ? accessToken.substring(0, 30) + "..." : null,
+  });
+
+  const authOptions: RequestInit = {
+    ...options,
+    headers: {
+      ...options.headers,
+      Authorization: `Bearer ${accessToken}`,
+    },
+    credentials: "include",
+  };
+
+  const response = await fetchWithTimeout(url, authOptions, timeout);
+
+  // If 401 and we have a refresh callback, try to refresh and retry
+  if (response.status === 401 && refreshTokenCallback) {
+    const newToken = await refreshTokenCallback();
+    if (newToken) {
+      const retryOptions: RequestInit = {
+        ...options,
+        headers: {
+          ...options.headers,
+          Authorization: `Bearer ${newToken}`,
+        },
+        credentials: "include",
+      };
+      return fetchWithTimeout(url, retryOptions, timeout);
+    }
+  }
+
+  return response;
+}
+
+/**
+ * Send a message to the chat endpoint (requires authentication)
+ */
 export async function sendMessage(
-  userId: string,
+  accessToken: string,
   message: string,
   conversationId?: string
 ): Promise<ChatResponse> {
@@ -61,8 +123,9 @@ export async function sendMessage(
   }
 
   try {
-    const response = await fetchWithTimeout(
-      `${API_BASE_URL}/api/${userId}/chat`,
+    const response = await fetchWithAuth(
+      `${API_BASE_URL}/api/chat`,
+      accessToken,
       {
         method: "POST",
         headers: {
@@ -94,4 +157,34 @@ export async function checkHealth(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+// Task types
+export interface TaskItem {
+  id: string;
+  title: string;
+  is_completed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TasksListResponse {
+  tasks: TaskItem[];
+  total: number;
+  completed: number;
+  pending: number;
+}
+
+/**
+ * Fetch all tasks for the authenticated user
+ */
+export async function fetchTasks(accessToken: string): Promise<TasksListResponse> {
+  const response = await fetchWithAuth(`${API_BASE_URL}/api/tasks`, accessToken);
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: "Unknown error" }));
+    throw new Error(error.detail || "Failed to fetch tasks");
+  }
+
+  return response.json();
 }

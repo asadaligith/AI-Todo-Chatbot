@@ -7,37 +7,25 @@ import Sidebar from "./Sidebar";
 import { MessageSkeleton } from "./ui/Skeleton";
 import { ChatEmptyState } from "./ui/EmptyState";
 import { sendMessage, ChatResponse } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 15);
 }
 
-function generateUserId(): string {
-  if (typeof window !== "undefined") {
-    const stored = localStorage.getItem("todo_user_id");
-    if (stored) return stored;
-    const newId = `user_${generateId()}`;
-    localStorage.setItem("todo_user_id", newId);
-    return newId;
-  }
-  return `user_${generateId()}`;
-}
-
 export default function Chat() {
+  const { user, accessToken, isAuthenticated } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string>("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [taskRefreshTrigger, setTaskRefreshTrigger] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
 
-  // Initialize user ID on client side
-  useEffect(() => {
-    setUserId(generateUserId());
-  }, []);
+  // Get user ID from auth context
+  const userId = user?.id || "";
 
   // Add welcome message on mount
   useEffect(() => {
@@ -60,7 +48,7 @@ export default function Chat() {
   }, [messages]);
 
   const handleSendMessage = async (content: string) => {
-    if (!userId) return;
+    if (!isAuthenticated || !accessToken) return;
 
     // Add user message
     const userMessage: Message = {
@@ -75,7 +63,7 @@ export default function Chat() {
 
     try {
       const response: ChatResponse = await sendMessage(
-        userId,
+        accessToken,
         content,
         conversationId
       );

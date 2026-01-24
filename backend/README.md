@@ -67,11 +67,121 @@ The API will be available at `http://localhost:8000`.
 
 ## API Endpoints
 
-### Chat Endpoint
+### Authentication Endpoints
+
+All protected endpoints require a valid JWT access token in the `Authorization` header:
+```
+Authorization: Bearer <access_token>
+```
+
+#### Register
 
 ```
-POST /api/{user_id}/chat
+POST /api/auth/register
 ```
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com",
+  "password": "securepassword123"
+}
+```
+
+**Response (201):**
+```json
+{
+  "id": "uuid-here",
+  "email": "user@example.com",
+  "created_at": "2026-01-21T10:00:00Z"
+}
+```
+
+#### Login
+
+```
+POST /api/auth/login
+```
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com",
+  "password": "securepassword123"
+}
+```
+
+**Response (200):**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "expires_in": 900,
+  "user": {
+    "id": "uuid-here",
+    "email": "user@example.com"
+  }
+}
+```
+
+Sets `refresh_token` HTTP-only cookie (7-day expiry).
+
+#### Refresh Token
+
+```
+POST /api/auth/refresh
+```
+
+No request body needed. Reads `refresh_token` from cookie.
+
+**Response (200):**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "expires_in": 900
+}
+```
+
+#### Logout
+
+```
+POST /api/auth/logout
+```
+
+Requires `Authorization` header. Revokes refresh token and clears cookie.
+
+**Response (200):**
+```json
+{
+  "message": "Successfully logged out"
+}
+```
+
+#### Get Current User
+
+```
+GET /api/auth/me
+```
+
+Requires `Authorization` header.
+
+**Response (200):**
+```json
+{
+  "id": "uuid-here",
+  "email": "user@example.com",
+  "created_at": "2026-01-21T10:00:00Z"
+}
+```
+
+### Chat Endpoint (Protected)
+
+```
+POST /api/chat
+```
+
+Requires `Authorization` header.
 
 **Request Body:**
 ```json
@@ -93,6 +203,32 @@ POST /api/{user_id}/chat
       "result": "Task 'buy groceries' created successfully"
     }
   ]
+}
+```
+
+### Tasks Endpoint (Protected)
+
+```
+GET /api/tasks
+```
+
+Requires `Authorization` header. Returns tasks owned by the authenticated user.
+
+**Response:**
+```json
+{
+  "tasks": [
+    {
+      "id": "uuid-here",
+      "title": "buy groceries",
+      "is_completed": false,
+      "created_at": "2026-01-21T10:00:00Z",
+      "updated_at": "2026-01-21T10:00:00Z"
+    }
+  ],
+  "total": 1,
+  "completed": 0,
+  "pending": 1
 }
 ```
 
@@ -145,7 +281,14 @@ backend/
 │   │   └── todo_agent.py   # Agent with function calling
 │   ├── api/                # FastAPI endpoints
 │   │   ├── __init__.py     # Request/Response models
-│   │   └── chat.py         # Chat endpoint
+│   │   ├── auth.py         # Authentication endpoints
+│   │   ├── chat.py         # Chat endpoint (protected)
+│   │   ├── deps.py         # FastAPI dependencies
+│   │   └── tasks.py        # Tasks endpoint (protected)
+│   ├── core/               # Core configuration
+│   │   ├── config.py       # Settings using Pydantic
+│   │   ├── exceptions.py   # Custom auth exceptions
+│   │   └── rate_limit.py   # Rate limiting setup
 │   ├── db/                 # Database configuration
 │   │   ├── __init__.py     # Async engine setup
 │   │   ├── init.py         # Table initialization
@@ -160,10 +303,16 @@ backend/
 │   │       ├── delete_task.py
 │   │       └── utils.py
 │   ├── models/             # SQLModel definitions
+│   │   ├── user.py         # User and RefreshToken models
 │   │   ├── task.py
 │   │   ├── conversation.py
 │   │   └── message.py
+│   ├── services/           # Business logic
+│   │   └── auth.py         # Auth service (JWT, passwords)
 │   └── main.py             # FastAPI application entry
+├── tests/                  # Test suite
+│   ├── unit/
+│   └── integration/
 ├── .env.example
 ├── pyproject.toml
 ├── requirements.txt
@@ -182,16 +331,34 @@ backend/
 
 ## Database Models
 
+### User
+- `id`: UUID primary key
+- `email`: Unique email address
+- `password_hash`: bcrypt-hashed password
+- `is_active`: Account status
+- `created_at`, `updated_at`: Timestamps
+
+### RefreshToken
+- `id`: UUID primary key (used as JWT `jti`)
+- `user_id`: Foreign key to User
+- `token_hash`: SHA-256 hash of token
+- `expires_at`: Expiration timestamp
+- `revoked_at`: When revoked (null if active)
+- `replaced_by`: Token that replaced this one
+- `created_at`: Timestamp
+
 ### Task
 - `id`: UUID primary key
-- `user_id`: Owner of the task
+- `user_id`: Legacy owner identifier
+- `owner_id`: Foreign key to User (nullable)
 - `title`: Task description
 - `is_completed`: Completion status
 - `created_at`, `updated_at`: Timestamps
 
 ### Conversation
 - `id`: UUID primary key
-- `user_id`: Owner
+- `user_id`: Legacy owner identifier
+- `owner_id`: Foreign key to User (nullable)
 - `created_at`, `updated_at`: Timestamps
 
 ### Message

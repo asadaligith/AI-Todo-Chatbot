@@ -1,14 +1,17 @@
 """Chat endpoint for the AI Todo Chatbot."""
 
 import logging
-from typing import Optional
+from typing import Annotated, Optional
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from src.api import ChatRequest, ChatResponse, ToolCallResponse
+from src.api.deps import CurrentUser
 from src.db import async_session_factory
+from src.db.session import get_session
 from src.models import Conversation, Message, MessageRole
 from src.agent.todo_agent import run_agent
 
@@ -24,7 +27,7 @@ async def get_or_create_conversation(
     Get an existing conversation or create a new one.
 
     Args:
-        user_id: The user ID.
+        user_id: The user ID string (UUID as string).
         conversation_id: Optional existing conversation ID.
 
     Returns:
@@ -32,9 +35,10 @@ async def get_or_create_conversation(
     """
     async with async_session_factory() as session:
         if conversation_id:
-            # Try to get existing conversation
+            # Try to get existing conversation by ID and user_id
             statement = select(Conversation).where(
-                Conversation.id == conversation_id, Conversation.user_id == user_id
+                Conversation.id == conversation_id,
+                Conversation.user_id == user_id
             )
             result = await session.execute(statement)
             conversation = result.scalar_one_or_none()
@@ -47,7 +51,7 @@ async def get_or_create_conversation(
                 f"Conversation {conversation_id} not found for user {user_id}, creating new"
             )
 
-        # Create new conversation
+        # Create new conversation with user_id
         conversation = Conversation(user_id=user_id)
         session.add(conversation)
         await session.commit()
@@ -120,18 +124,26 @@ async def save_message(
         return message
 
 
-@router.post("/{user_id}/chat", response_model=ChatResponse)
-async def chat(user_id: str, request: ChatRequest) -> ChatResponse:
+@router.post("/chat", response_model=ChatResponse)
+async def chat(
+    request: ChatRequest,
+    current_user: CurrentUser,
+) -> ChatResponse:
     """
     Send a message to the AI chatbot and receive a response.
 
+    Requires authentication. Uses the authenticated user's ID for all operations.
+
     Args:
-        user_id: The user ID from the URL path.
         request: The chat request with message and optional conversation ID.
+        current_user: The authenticated user from the JWT token.
 
     Returns:
         ChatResponse with the assistant's response and any tool calls.
     """
+    # Use the authenticated user's ID
+    user_id = str(current_user.id)
+
     # Validate input
     message = request.message.strip()
     if not message:
@@ -142,7 +154,9 @@ async def chat(user_id: str, request: ChatRequest) -> ChatResponse:
 
     try:
         # Get or create conversation
-        conversation = await get_or_create_conversation(user_id, request.conversation_id)
+        conversation = await get_or_create_conversation(
+            user_id, request.conversation_id
+        )
 
         # Load conversation history
         history = await load_conversation_history(conversation.id)

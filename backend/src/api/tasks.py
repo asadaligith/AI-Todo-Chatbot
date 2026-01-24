@@ -2,12 +2,12 @@
 
 import logging
 from typing import List
-from uuid import UUID
 from pydantic import BaseModel
 
 from fastapi import APIRouter
 from sqlmodel import select
 
+from src.api.deps import CurrentUser
 from src.db import async_session_factory
 from src.models import Task
 
@@ -33,18 +33,23 @@ class TasksListResponse(BaseModel):
     pending: int
 
 
-@router.get("/{user_id}/tasks", response_model=TasksListResponse)
-async def list_tasks(user_id: str) -> TasksListResponse:
+@router.get("/tasks", response_model=TasksListResponse)
+async def list_tasks(current_user: CurrentUser) -> TasksListResponse:
     """
-    Get all tasks for a user.
+    Get all tasks for the authenticated user.
+
+    Requires authentication. Returns only tasks owned by the current user.
 
     Args:
-        user_id: The user ID from the URL path.
+        current_user: The authenticated user from the JWT token.
 
     Returns:
         TasksListResponse with all user tasks and counts.
     """
+    user_id = str(current_user.id)
+
     async with async_session_factory() as session:
+        # Query tasks by user_id
         statement = (
             select(Task)
             .where(Task.user_id == user_id)

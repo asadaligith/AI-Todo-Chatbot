@@ -1,7 +1,6 @@
 """Task model for user todos."""
 
 from datetime import datetime
-from typing import Optional
 from uuid import UUID, uuid4
 from sqlmodel import SQLModel, Field
 
@@ -12,7 +11,7 @@ class Task(SQLModel, table=True):
 
     Attributes:
         id: Unique identifier for the task.
-        user_id: Owner of the task.
+        user_id: Owner identifier (stores user UUID as string).
         title: Task description (max 500 characters).
         is_completed: Whether the task is complete.
         created_at: When the task was created.
