@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Card from "./ui/Card";
 import Button from "./ui/Button";
 import { TaskCardSkeleton } from "./ui/Skeleton";
 import { NoTasksEmptyState } from "./ui/EmptyState";
+import { useAuth } from "@/lib/auth";
+import { fetchTasks } from "@/lib/api";
 
 interface Task {
   id: string;
@@ -26,7 +29,6 @@ interface SidebarProps {
  * Sidebar component showing task summary and quick actions
  * Mobile-first with smooth slide-in animation
  */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function Sidebar({
   isOpen,
@@ -36,27 +38,43 @@ export default function Sidebar({
   refreshTrigger = 0,
   className = "",
 }: SidebarProps) {
+  const router = useRouter();
+  const { logout, isAuthenticated, user, accessToken } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // Fetch real tasks from API
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      router.push("/login");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+  // Fetch real tasks from API using authenticated endpoint
   useEffect(() => {
-    const fetchTasks = async () => {
-      if (!userId) return;
+    const loadTasks = async () => {
+      console.log("[Sidebar] loadTasks called:", {
+        isAuthenticated,
+        hasAccessToken: !!accessToken,
+        tokenPreview: accessToken ? accessToken.substring(0, 20) + "..." : null,
+      });
+      if (!isAuthenticated || !accessToken) return;
 
       setIsLoading(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/api/${userId}/tasks`);
-        if (response.ok) {
-          const data = await response.json();
-          // Map API response to Task interface
-          const mappedTasks: Task[] = data.tasks.map((task: { id: string; title: string; is_completed: boolean }) => ({
-            id: task.id,
-            title: task.title,
-            completed: task.is_completed,
-          }));
-          setTasks(mappedTasks);
-        }
+        console.log("[Sidebar] Fetching tasks with token");
+        const data = await fetchTasks(accessToken);
+        // Map API response to Task interface
+        const mappedTasks: Task[] = data.tasks.map((task) => ({
+          id: task.id,
+          title: task.title,
+          completed: task.is_completed,
+        }));
+        setTasks(mappedTasks);
       } catch (error) {
         console.error("Failed to fetch tasks:", error);
         setTasks([]);
@@ -65,8 +83,8 @@ export default function Sidebar({
       }
     };
 
-    fetchTasks();
-  }, [userId, refreshTrigger]);
+    loadTasks();
+  }, [isAuthenticated, accessToken, refreshTrigger]);
 
   const completedCount = tasks.filter((t) => t.completed).length;
   const totalCount = tasks.length;
@@ -357,6 +375,45 @@ export default function Sidebar({
               </div>
             </div>
           </div>
+
+          {/* User Info and Logout */}
+          {isAuthenticated && (
+            <div className="p-4 border-t border-slate-200 dark:border-slate-700">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                      {user?.email?.charAt(0).toUpperCase() || "U"}
+                    </span>
+                  </div>
+                  <span className="text-sm text-slate-700 dark:text-slate-300 truncate">
+                    {user?.email || "User"}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
+                aria-label="Sign out"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+                {isLoggingOut ? "Signing out..." : "Sign Out"}
+              </button>
+            </div>
+          )}
         </div>
       </aside>
     </>

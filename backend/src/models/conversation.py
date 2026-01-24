@@ -11,7 +11,7 @@ class Conversation(SQLModel, table=True):
 
     Attributes:
         id: Unique identifier for the conversation.
-        user_id: Owner of the conversation.
+        user_id: Owner identifier (stores user UUID as string).
         created_at: When the conversation was started.
         updated_at: When the conversation was last active.
     """
