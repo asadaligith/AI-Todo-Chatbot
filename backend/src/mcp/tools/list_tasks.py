@@ -1,6 +1,7 @@
 """MCP tool for listing tasks."""
 
 import logging
+
 from sqlmodel import select
 
 from src.mcp.server import register_tool
@@ -16,19 +17,20 @@ async def list_tasks(user_id: str) -> str:
     List all tasks for the user.
 
     Args:
-        user_id: The ID of the user.
+        user_id: The ID of the user (UUID as string).
 
     Returns:
         Formatted task list or friendly message if empty.
     """
     async with async_session_factory() as session:
         try:
-            # Get all tasks for the user ordered by creation time
+            # Query tasks by user_id
             statement = (
                 select(Task)
                 .where(Task.user_id == user_id)
                 .order_by(Task.created_at.asc())
             )
+
             result = await session.execute(statement)
             tasks = result.scalars().all()
 

@@ -1,6 +1,7 @@
 """MCP tool for adding tasks."""
 
 import logging
+
 from src.mcp.server import register_tool
 from src.db import async_session_factory
 from src.models import Task
@@ -14,7 +15,7 @@ async def add_task(user_id: str, title: str) -> str:
     Create a new task for the user.
 
     Args:
-        user_id: The ID of the user.
+        user_id: The ID of the user (UUID as string).
         title: The title of the task to create.
 
     Returns:
@@ -30,7 +31,7 @@ async def add_task(user_id: str, title: str) -> str:
 
     async with async_session_factory() as session:
         try:
-            # Create the task
+            # Create the task with user_id
             task = Task(user_id=user_id, title=title)
             session.add(task)
             await session.commit()

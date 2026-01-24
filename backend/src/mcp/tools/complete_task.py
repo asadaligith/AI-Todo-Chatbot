@@ -2,6 +2,7 @@
 
 import logging
 from datetime import datetime
+
 from sqlmodel import select
 
 from src.mcp.server import register_tool
@@ -19,18 +20,19 @@ async def find_tasks_by_identifier(
 
     Args:
         session: Database session.
-        user_id: The user ID.
+        user_id: The user ID (UUID as string).
         task_identifier: The task title or partial match.
 
     Returns:
         List of matching tasks.
     """
-    # Try case-insensitive LIKE query for fuzzy matching
+    # Query tasks by user_id with title filter
     statement = (
         select(Task)
         .where(Task.user_id == user_id)
         .where(Task.title.ilike(f"%{task_identifier}%"))
     )
+
     result = await session.execute(statement)
     return list(result.scalars().all())
 
@@ -42,6 +44,7 @@ async def get_available_tasks_message(session, user_id: str) -> str:
         .where(Task.user_id == user_id)
         .order_by(Task.created_at.asc())
     )
+
     result = await session.execute(statement)
     tasks = result.scalars().all()
 
