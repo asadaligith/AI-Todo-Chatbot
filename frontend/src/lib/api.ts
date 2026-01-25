@@ -54,7 +54,7 @@ async function fetchWithTimeout(
   } catch (error) {
     clearTimeout(timeoutId);
     if (error instanceof Error && error.name === "AbortError") {
-      throw new Error("Request timed out. Please check if the backend server is running.");
+      throw new Error("Request timed out. Please try again.");
     }
     throw error;
   }
@@ -144,7 +144,7 @@ export async function sendMessage(
     return response.json();
   } catch (error) {
     if (error instanceof TypeError && error.message.includes("fetch")) {
-      throw new Error("Cannot connect to server. Please ensure the backend is running on http://localhost:8000");
+      throw new Error("Cannot connect to server. Please check your connection and try again.");
     }
     throw error;
   }

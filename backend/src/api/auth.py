@@ -169,12 +169,15 @@ async def login(
     refresh_token = await create_refresh_token(session, user.id)
 
     # Set refresh token as HTTP-only cookie
+    # Use samesite="none" for cross-origin requests (frontend on Vercel, backend on Render)
+    # secure=True is required when samesite="none"
+    is_production = settings.environment != "development"
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=settings.environment != "development",
-        samesite="strict",
+        secure=is_production,
+        samesite="none" if is_production else "lax",
         path="/api/auth",
         max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
     )
@@ -230,12 +233,14 @@ async def refresh(
     access_token = create_access_token(user.id, user.email)
 
     # Update refresh token cookie
+    # Use samesite="none" for cross-origin requests (frontend on Vercel, backend on Render)
+    is_production = settings.environment != "development"
     response.set_cookie(
         key="refresh_token",
         value=new_refresh_token,
         httponly=True,
-        secure=settings.environment != "development",
-        samesite="strict",
+        secure=is_production,
+        samesite="none" if is_production else "lax",
         path="/api/auth",
         max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
     )
@@ -273,12 +278,14 @@ async def logout(
         await revoke_refresh_token(session, refresh_token)
 
     # Clear the refresh token cookie
+    # Must match the same cookie settings used when setting it
+    is_production = settings.environment != "development"
     response.delete_cookie(
         key="refresh_token",
         path="/api/auth",
         httponly=True,
-        secure=settings.environment != "development",
-        samesite="strict",
+        secure=is_production,
+        samesite="none" if is_production else "lax",
     )
 
     return MessageResponse(message="Successfully logged out")
