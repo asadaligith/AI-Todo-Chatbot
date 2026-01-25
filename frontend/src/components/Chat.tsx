@@ -94,7 +94,7 @@ export default function Chat() {
         id: generateId(),
         role: "assistant",
         content:
-          "I'm sorry, I encountered an error. Please make sure the backend server is running on http://localhost:8000 and try again.",
+          "I'm sorry, I encountered an error. Please check your connection and try again.",
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
