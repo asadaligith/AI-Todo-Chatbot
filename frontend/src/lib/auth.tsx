@@ -56,57 +56,85 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Register a new user
   const register = useCallback(async (email: string, password: string) => {
-    const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include", // Required for cross-origin requests with CORS
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // Required for cross-origin requests with CORS
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (!response.ok) {
-      const error: ApiError = await response.json();
-      throw new Error(error.message || "Registration failed");
+      if (!response.ok) {
+        // Try to parse error response
+        try {
+          const error: ApiError = await response.json();
+          throw new Error(error.message || "Registration failed");
+        } catch {
+          // If JSON parsing fails, use status text
+          throw new Error(`Registration failed: ${response.status} ${response.statusText}`);
+        }
+      }
+
+      // Registration successful, user should now log in
+    } catch (error) {
+      // Handle network errors (CORS, connection refused, etc.)
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new Error("Cannot connect to server. Please check if the backend is running.");
+      }
+      throw error;
     }
-
-    // Registration successful, user should now log in
   }, []);
 
   // Login and get tokens
   const login = useCallback(async (email: string, password: string) => {
-    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include", // Important for cookies
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // Important for cookies
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (!response.ok) {
-      const error: ApiError = await response.json();
-      throw new Error(error.message || "Login failed");
+      if (!response.ok) {
+        // Try to parse error response
+        try {
+          const error: ApiError = await response.json();
+          throw new Error(error.message || "Login failed");
+        } catch {
+          // If JSON parsing fails, use status text
+          throw new Error(`Login failed: ${response.status} ${response.statusText}`);
+        }
+      }
+
+      const data = await response.json();
+
+      // Debug: Log the received data
+      console.log("[Auth] Login successful, received:", {
+        user: data.user,
+        hasAccessToken: !!data.access_token,
+        tokenLength: data.access_token?.length,
+      });
+
+      // Mark as initialized since we now have a session
+      initialized.current = true;
+
+      setState({
+        user: data.user,
+        accessToken: data.access_token,
+        isLoading: false,
+        isAuthenticated: true,
+      });
+    } catch (error) {
+      // Handle network errors (CORS, connection refused, etc.)
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new Error("Cannot connect to server. Please check if the backend is running.");
+      }
+      throw error;
     }
-
-    const data = await response.json();
-
-    // Debug: Log the received data
-    console.log("[Auth] Login successful, received:", {
-      user: data.user,
-      hasAccessToken: !!data.access_token,
-      tokenLength: data.access_token?.length,
-    });
-
-    // Mark as initialized since we now have a session
-    initialized.current = true;
-
-    setState({
-      user: data.user,
-      accessToken: data.access_token,
-      isLoading: false,
-      isAuthenticated: true,
-    });
   }, []);
 
   // Logout
