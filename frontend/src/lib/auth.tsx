@@ -61,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include", // Required for cross-origin requests with CORS
       body: JSON.stringify({ email, password }),
     });
 

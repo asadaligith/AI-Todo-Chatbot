@@ -17,6 +17,10 @@ services:
         sync: false # Set manually in dashboard
       - key: OPENAI_API_KEY
         sync: false # Set manually in dashboard
+      - key: JWT_SECRET_KEY
+        sync: false # Set manually in dashboard - generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
+      - key: FRONTEND_URL
+        sync: false # Set manually in dashboard - your Vercel frontend URL (e.g., https://your-app.vercel.app)
       - key: ENVIRONMENT
         value: production
       - key: LOG_LEVEL
