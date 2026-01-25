@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
 from sqlmodel import SQLModel
 
 # Load environment variables
@@ -15,11 +16,13 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is not set")
 
-# Create async engine
+# Create async engine with connection pool settings for Neon PostgreSQL
+# NullPool is recommended for serverless databases like Neon to avoid stale connections
 engine = create_async_engine(
     DATABASE_URL,
     echo=os.getenv("ENVIRONMENT", "development") == "development",
     future=True,
+    poolclass=NullPool,  # Disable connection pooling for serverless DB compatibility
 )
 
 # Async session factory
