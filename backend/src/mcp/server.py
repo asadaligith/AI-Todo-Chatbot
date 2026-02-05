@@ -1,7 +1,7 @@
 """MCP Server setup for task operations."""
 
-from typing import Callable, Any
 import logging
+from typing import Any, Callable
 
 logger = logging.getLogger(__name__)
 
@@ -58,10 +58,10 @@ class MCPServer:
         # Import tools to register them
         from src.mcp.tools import (  # noqa: F401
             add_task,
-            list_tasks,
             complete_task,
-            update_task,
             delete_task,
+            list_tasks,
+            update_task,
         )
 
         self._initialized = True

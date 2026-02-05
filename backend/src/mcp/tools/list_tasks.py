@@ -4,8 +4,8 @@ import logging
 
 from sqlmodel import select
 
-from src.mcp.server import register_tool
 from src.db import async_session_factory
+from src.mcp.server import register_tool
 from src.models import Task
 
 logger = logging.getLogger(__name__)
@@ -25,11 +25,7 @@ async def list_tasks(user_id: str) -> str:
     async with async_session_factory() as session:
         try:
             # Query tasks by user_id
-            statement = (
-                select(Task)
-                .where(Task.user_id == user_id)
-                .order_by(Task.created_at.asc())
-            )
+            statement = select(Task).where(Task.user_id == user_id).order_by(Task.created_at.asc())
 
             result = await session.execute(statement)
             tasks = result.scalars().all()

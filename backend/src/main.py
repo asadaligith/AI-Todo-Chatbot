@@ -5,16 +5,16 @@ import os
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from dotenv import load_dotenv
 from slowapi.errors import RateLimitExceeded
 
-from src.db import init_db, close_db
-from src.mcp.server import mcp_server
 from src.core.exceptions import AuthException
 from src.core.rate_limit import limiter
+from src.db import close_db, init_db
+from src.mcp.server import mcp_server
 
 # Load environment variables
 load_dotenv()
@@ -73,8 +73,8 @@ app.state.limiter = limiter
 # Configure CORS - must specify exact origins when using credentials
 # Cannot use "*" with allow_credentials=True
 ALLOWED_ORIGINS = [
-    "http://localhost:3000",      # Next.js development
-    "http://127.0.0.1:3000",      # Alternative localhost
+    "http://localhost:3000",  # Next.js development
+    "http://127.0.0.1:3000",  # Alternative localhost
     os.getenv("FRONTEND_URL", ""),  # Production frontend URL
 ]
 # Filter out empty strings

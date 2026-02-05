@@ -2,8 +2,8 @@
 
 import logging
 
-from src.mcp.server import register_tool
 from src.db import async_session_factory
+from src.mcp.server import register_tool
 from src.models import Task
 
 logger = logging.getLogger(__name__)

@@ -232,12 +232,12 @@
 
 **Purpose**: Final improvements and validation
 
-- [ ] T085 Run backend linting and fix any issues (ruff, black)
-- [ ] T086 Run frontend linting and fix any issues (eslint, prettier)
+- [x] T085 Run backend linting and fix any issues (ruff, black)
+- [x] T086 Run frontend linting and fix any issues (eslint, prettier)
 - [x] T087 Verify all endpoints match contracts/api.md specification
-- [ ] T088 Test complete flow: register → login → create task → refresh token → logout → verify session ended
+- [x] T088 Test complete flow: register → login → create task → refresh token → logout → verify session ended
 - [x] T089 Update backend/README.md with auth endpoint documentation
-- [ ] T090 Verify frontend works on Vercel deployment (HTTPS, cookie settings)
+- [x] T090 Verify frontend works on Vercel deployment (HTTPS, cookie settings)
 
 ---
 

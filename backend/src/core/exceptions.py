@@ -7,11 +7,7 @@ class AuthException(Exception):
     """Base exception for authentication errors."""
 
     def __init__(
-        self,
-        code: str,
-        message: str,
-        status_code: int = 401,
-        headers: Optional[dict] = None
+        self, code: str, message: str, status_code: int = 401, headers: Optional[dict] = None
     ):
         self.code = code
         self.message = message

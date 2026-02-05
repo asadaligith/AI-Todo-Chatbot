@@ -2,13 +2,13 @@
 
 from src.core.config import settings
 from src.core.exceptions import (
+    AccountDisabledError,
     AuthException,
+    EmailExistsError,
     InvalidCredentialsError,
+    InvalidTokenError,
     TokenExpiredError,
     TokenRevokedError,
-    InvalidTokenError,
-    EmailExistsError,
-    AccountDisabledError,
 )
 
 __all__ = [

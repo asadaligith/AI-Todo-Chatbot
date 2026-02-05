@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID, uuid4
 
-from sqlmodel import SQLModel, Field
+from sqlmodel import Field, SQLModel
 
 
 class User(SQLModel, table=True):
@@ -23,12 +23,7 @@ class User(SQLModel, table=True):
     __tablename__ = "users"
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    email: str = Field(
-        max_length=255,
-        index=True,
-        unique=True,
-        nullable=False
-    )
+    email: str = Field(max_length=255, index=True, unique=True, nullable=False)
     password_hash: str = Field(max_length=255, nullable=False)
     is_active: bool = Field(default=True, nullable=False)
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
@@ -56,19 +51,13 @@ class RefreshToken(SQLModel, table=True):
     __tablename__ = "refresh_tokens"
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    user_id: UUID = Field(
-        foreign_key="users.id",
-        index=True,
-        nullable=False
-    )
+    user_id: UUID = Field(foreign_key="users.id", index=True, nullable=False)
     token_hash: str = Field(max_length=255, nullable=False, index=True)
     expires_at: datetime = Field(nullable=False, index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
     revoked_at: Optional[datetime] = Field(default=None, nullable=True)
     replaced_by: Optional[UUID] = Field(
-        default=None,
-        foreign_key="refresh_tokens.id",
-        nullable=True
+        default=None, foreign_key="refresh_tokens.id", nullable=True
     )
 
     def is_valid(self) -> bool:

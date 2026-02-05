@@ -2,10 +2,11 @@
 
 import asyncio
 import logging
-from src.db import init_db, close_db
+
+from src.db import close_db, init_db
 
 # Import models to register them with SQLModel
-from src.models import Task, Conversation, Message, User, RefreshToken  # noqa: F401
+from src.models import Conversation, Message, RefreshToken, Task, User  # noqa: F401
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -2,10 +2,11 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Any
+from typing import Any, Optional
 from uuid import UUID, uuid4
-from sqlmodel import SQLModel, Field, Column
+
 from sqlalchemy import JSON
+from sqlmodel import Column, Field, SQLModel
 
 
 class MessageRole(str, Enum):

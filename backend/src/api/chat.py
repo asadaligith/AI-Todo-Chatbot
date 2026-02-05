@@ -1,28 +1,24 @@
 """Chat endpoint for the AI Todo Chatbot."""
 
 import logging
-from typing import Annotated, Optional
-from uuid import UUID, uuid4
+from typing import Optional
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, HTTPException
 from sqlmodel import select
 
+from src.agent.todo_agent import run_agent
 from src.api import ChatRequest, ChatResponse, ToolCallResponse
 from src.api.deps import CurrentUser
 from src.db import async_session_factory
-from src.db.session import get_session
 from src.models import Conversation, Message, MessageRole
-from src.agent.todo_agent import run_agent
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
 
-async def get_or_create_conversation(
-    user_id: str, conversation_id: Optional[UUID]
-) -> Conversation:
+async def get_or_create_conversation(user_id: str, conversation_id: Optional[UUID]) -> Conversation:
     """
     Get an existing conversation or create a new one.
 
@@ -37,8 +33,7 @@ async def get_or_create_conversation(
         if conversation_id:
             # Try to get existing conversation by ID and user_id
             statement = select(Conversation).where(
-                Conversation.id == conversation_id,
-                Conversation.user_id == user_id
+                Conversation.id == conversation_id, Conversation.user_id == user_id
             )
             result = await session.execute(statement)
             conversation = result.scalar_one_or_none()
@@ -154,9 +149,7 @@ async def chat(
 
     try:
         # Get or create conversation
-        conversation = await get_or_create_conversation(
-            user_id, request.conversation_id
-        )
+        conversation = await get_or_create_conversation(user_id, request.conversation_id)
 
         # Load conversation history
         history = await load_conversation_history(conversation.id)

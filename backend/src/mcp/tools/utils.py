@@ -1,8 +1,9 @@
 """Shared utilities for MCP tools."""
 
 import logging
-from sqlmodel import select
+
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
 
 from src.models import Task
 
@@ -25,9 +26,7 @@ async def find_tasks_by_identifier(
     """
     # Try case-insensitive LIKE query for fuzzy matching
     statement = (
-        select(Task)
-        .where(Task.user_id == user_id)
-        .where(Task.title.ilike(f"%{task_identifier}%"))
+        select(Task).where(Task.user_id == user_id).where(Task.title.ilike(f"%{task_identifier}%"))
     )
     result = await session.execute(statement)
     return list(result.scalars().all())
@@ -44,11 +43,7 @@ async def get_available_tasks_message(session: AsyncSession, user_id: str) -> st
     Returns:
         Formatted string with task list or empty message.
     """
-    statement = (
-        select(Task)
-        .where(Task.user_id == user_id)
-        .order_by(Task.created_at.asc())
-    )
+    statement = select(Task).where(Task.user_id == user_id).order_by(Task.created_at.asc())
     result = await session.execute(statement)
     tasks = result.scalars().all()
 

@@ -9,6 +9,7 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.api.deps import CurrentUser
 from src.core.config import settings
 from src.core.exceptions import EmailExistsError, InvalidCredentialsError
 from src.core.rate_limit import limiter
@@ -22,7 +23,6 @@ from src.services.auth import (
     rotate_refresh_token,
     verify_password,
 )
-from src.api.deps import CurrentUser
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 

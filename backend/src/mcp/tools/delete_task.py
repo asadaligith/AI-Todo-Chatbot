@@ -1,11 +1,9 @@
 """MCP tool for deleting tasks."""
 
 import logging
-from sqlmodel import select
 
-from src.mcp.server import register_tool
 from src.db import async_session_factory
-from src.models import Task
+from src.mcp.server import register_tool
 from src.mcp.tools.complete_task import find_tasks_by_identifier, get_available_tasks_message
 
 logger = logging.getLogger(__name__)
@@ -30,9 +28,7 @@ async def delete_task(user_id: str, task_identifier: str) -> str:
     async with async_session_factory() as session:
         try:
             # Find matching tasks
-            matching_tasks = await find_tasks_by_identifier(
-                session, user_id, task_identifier
-            )
+            matching_tasks = await find_tasks_by_identifier(session, user_id, task_identifier)
 
             if not matching_tasks:
                 # Task not found - show available tasks

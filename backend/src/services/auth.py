@@ -46,9 +46,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def create_access_token(
-    user_id: UUID,
-    email: str,
-    expires_delta: Optional[timedelta] = None
+    user_id: UUID, email: str, expires_delta: Optional[timedelta] = None
 ) -> str:
     """
     Create a JWT access token.
@@ -76,11 +74,7 @@ def create_access_token(
         "exp": int(expire.timestamp()),
     }
 
-    return jwt.encode(
-        payload,
-        settings.jwt_secret_key,
-        algorithm=settings.jwt_algorithm
-    )
+    return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
 
 def verify_access_token(token: str) -> dict:
@@ -96,11 +90,7 @@ def verify_access_token(token: str) -> dict:
     Raises:
         JWTError: If token is invalid, expired, or has wrong type.
     """
-    payload = jwt.decode(
-        token,
-        settings.jwt_secret_key,
-        algorithms=[settings.jwt_algorithm]
-    )
+    payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
 
     # Verify token type
     if payload.get("type") != "access":
@@ -123,9 +113,7 @@ def _hash_token(token: str) -> str:
 
 
 async def create_refresh_token(
-    session: AsyncSession,
-    user_id: UUID,
-    expires_delta: Optional[timedelta] = None
+    session: AsyncSession, user_id: UUID, expires_delta: Optional[timedelta] = None
 ) -> str:
     """
     Create a refresh token and store its hash in the database.
@@ -164,8 +152,7 @@ async def create_refresh_token(
 
 
 async def _get_refresh_token_record(
-    session: AsyncSession,
-    token_string: str
+    session: AsyncSession, token_string: str
 ) -> Optional[RefreshToken]:
     """
     Parse token string and retrieve the refresh token record from database.
@@ -188,9 +175,7 @@ async def _get_refresh_token_record(
         token_hash = _hash_token(raw_token)
 
         # Fetch the token record
-        result = await session.execute(
-            select(RefreshToken).where(RefreshToken.id == token_id)
-        )
+        result = await session.execute(select(RefreshToken).where(RefreshToken.id == token_id))
         token_record = result.scalar_one_or_none()
 
         if token_record is None:
@@ -207,8 +192,7 @@ async def _get_refresh_token_record(
 
 
 async def rotate_refresh_token(
-    session: AsyncSession,
-    old_token_string: str
+    session: AsyncSession, old_token_string: str
 ) -> Optional[tuple[str, User]]:
     """
     Rotate a refresh token: invalidate the old one and create a new one.
@@ -231,9 +215,7 @@ async def rotate_refresh_token(
         return None
 
     # Get the user
-    result = await session.execute(
-        select(User).where(User.id == old_token.user_id)
-    )
+    result = await session.execute(select(User).where(User.id == old_token.user_id))
     user = result.scalar_one_or_none()
 
     if user is None or not user.is_active:
@@ -251,10 +233,7 @@ async def rotate_refresh_token(
     return new_token_string, user
 
 
-async def revoke_refresh_token(
-    session: AsyncSession,
-    token_string: str
-) -> bool:
+async def revoke_refresh_token(session: AsyncSession, token_string: str) -> bool:
     """
     Revoke a refresh token (for logout).
 
@@ -277,10 +256,7 @@ async def revoke_refresh_token(
     return True
 
 
-async def validate_refresh_token(
-    session: AsyncSession,
-    token_string: str
-) -> Optional[User]:
+async def validate_refresh_token(session: AsyncSession, token_string: str) -> Optional[User]:
     """
     Validate a refresh token and return the associated user.
 
@@ -300,9 +276,7 @@ async def validate_refresh_token(
         return None
 
     # Get the user
-    result = await session.execute(
-        select(User).where(User.id == token_record.user_id)
-    )
+    result = await session.execute(select(User).where(User.id == token_record.user_id))
     user = result.scalar_one_or_none()
 
     if user is None or not user.is_active:

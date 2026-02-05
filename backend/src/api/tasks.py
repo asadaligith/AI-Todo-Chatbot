@@ -2,9 +2,9 @@
 
 import logging
 from typing import List
-from pydantic import BaseModel
 
 from fastapi import APIRouter
+from pydantic import BaseModel
 from sqlmodel import select
 
 from src.api.deps import CurrentUser
@@ -18,6 +18,7 @@ router = APIRouter(prefix="/api", tags=["tasks"])
 
 class TaskResponse(BaseModel):
     """Response model for a task."""
+
     id: str
     title: str
     is_completed: bool
@@ -27,6 +28,7 @@ class TaskResponse(BaseModel):
 
 class TasksListResponse(BaseModel):
     """Response model for listing tasks."""
+
     tasks: List[TaskResponse]
     total: int
     completed: int
@@ -50,11 +52,7 @@ async def list_tasks(current_user: CurrentUser) -> TasksListResponse:
 
     async with async_session_factory() as session:
         # Query tasks by user_id
-        statement = (
-            select(Task)
-            .where(Task.user_id == user_id)
-            .order_by(Task.created_at.desc())
-        )
+        statement = select(Task).where(Task.user_id == user_id).order_by(Task.created_at.desc())
         result = await session.execute(statement)
         tasks = result.scalars().all()
 

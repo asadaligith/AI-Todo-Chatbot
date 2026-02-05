@@ -5,16 +5,14 @@ from datetime import datetime
 
 from sqlmodel import select
 
-from src.mcp.server import register_tool
 from src.db import async_session_factory
+from src.mcp.server import register_tool
 from src.models import Task
 
 logger = logging.getLogger(__name__)
 
 
-async def find_tasks_by_identifier(
-    session, user_id: str, task_identifier: str
-) -> list[Task]:
+async def find_tasks_by_identifier(session, user_id: str, task_identifier: str) -> list[Task]:
     """
     Find tasks matching the identifier using fuzzy matching.
 
@@ -28,9 +26,7 @@ async def find_tasks_by_identifier(
     """
     # Query tasks by user_id with title filter
     statement = (
-        select(Task)
-        .where(Task.user_id == user_id)
-        .where(Task.title.ilike(f"%{task_identifier}%"))
+        select(Task).where(Task.user_id == user_id).where(Task.title.ilike(f"%{task_identifier}%"))
     )
 
     result = await session.execute(statement)
@@ -39,11 +35,7 @@ async def find_tasks_by_identifier(
 
 async def get_available_tasks_message(session, user_id: str) -> str:
     """Get a formatted list of available tasks for error messages."""
-    statement = (
-        select(Task)
-        .where(Task.user_id == user_id)
-        .order_by(Task.created_at.asc())
-    )
+    statement = select(Task).where(Task.user_id == user_id).order_by(Task.created_at.asc())
 
     result = await session.execute(statement)
     tasks = result.scalars().all()
@@ -74,9 +66,7 @@ async def complete_task(user_id: str, task_identifier: str) -> str:
     async with async_session_factory() as session:
         try:
             # Find matching tasks
-            matching_tasks = await find_tasks_by_identifier(
-                session, user_id, task_identifier
-            )
+            matching_tasks = await find_tasks_by_identifier(session, user_id, task_identifier)
 
             if not matching_tasks:
                 # Task not found - show available tasks

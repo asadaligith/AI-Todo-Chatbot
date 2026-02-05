@@ -1,15 +1,14 @@
 """Todo Agent implementation using OpenAI Agents SDK."""
 
-import os
 import json
 import logging
-import asyncio
-from typing import Any
+import os
 from dataclasses import dataclass
+from typing import Any
 
-from openai import AsyncOpenAI, APITimeoutError, APIConnectionError, APIError
 import httpx
 from dotenv import load_dotenv
+from openai import APIConnectionError, APIError, APITimeoutError, AsyncOpenAI
 
 from src.mcp.server import get_tools
 
